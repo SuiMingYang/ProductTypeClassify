@@ -24,7 +24,8 @@
 
 ### 四、数据处理
 分词，去除停用词，转成词向量
-```import jieba
+```
+import jieba
 import pandas as pd
 import random
 
