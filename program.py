@@ -1,52 +1,63 @@
-import jieba
-import pandas as pd
-import random
-
-sentences=[]
-df = pd.read_csv('./data/product.csv',encoding='UTF-8')
-for i,item in enumerate(df['productTitle']):
-    segs=jieba.lcut(item)
-    sentences.append((" ".join(segs),df['secondtype'][i]))
-
-random.shuffle(sentences)
-
-from sklearn.model_selection import train_test_split
-
-x,y = zip(*sentences)
-x_train,x_test,y_train,y_test=train_test_split(x,y,random_state=1234)
-
-from sklearn.feature_extraction.text import CountVectorizer
-
-vec = CountVectorizer(
-    analyzer='word',
-    ngram_range=(1,4),
-    max_features=22000
-)
-vec.fit(x_train)
-
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import accuracy_score,precision_score
-import numpy as np
-
-#使用svm分析
-from sklearn.svm import SVC
-svm = SVC(kernel='linear')#快
-#SVC()#默认rbf核，慢
-svm.fit(vec.transform(x_train),y_train)
-print(svm.score(vec.transform(x_test),y_test))
-print(svm.predict(vec.transform(jieba.lcut(u'2019新款黑色职业短款半身裙'))))
-print(svm.predict(vec.transform(jieba.lcut(u'女神范套装女春装2019新款时尚休闲慵懒气质御姐洋气阔腿裤两件套'))))
-print(svm.predict(vec.transform(jieba.lcut(u'【睡眠文胸】新款无钢圈薄款收副乳全罩杯加厚聚拢大码内衣调整型胸罩运动文胸DQM-4 h405'))))
-print(svm.predict(vec.transform(jieba.lcut(u'新款无钢圈薄款收副乳全罩杯加厚聚拢大码内衣调整型胸罩运动文胸'))))
-print(svm.predict(vec.transform(jieba.lcut(u'新款无钢圈薄款收副乳全罩杯加厚聚拢大码内衣胸罩'))))
-
-#写入字典或者离线数据文件
 from sklearn.externals import joblib
 import pickle
-#保存模型
-filename = 'extract_secondtype.sav'
-joblib.dump(svm, filename)
-# load the model from disk
+from sklearn.feature_extraction.text import CountVectorizer
+import jieba
+from collections import Counter
+
+from tkinter import *
+top = Tk()
+top.title('品类分析工具')
+top.geometry("250x150")
+# 进入消息循环
+
+text=''
+def put_category(l):
+    l=loaded_model.predict(vec.transform(jieba.lcut(l)))
+    print(l)
+    l=sorted(Counter(l).items(),key = lambda kv:(kv[1]),reverse=True)
+    for i in l:
+        if i[0] !='nan':
+            text= i[0]
+            L2['text']=text
+            print(text)
+            break
+            
+
+
+'''
+调用模型
+'''
+
+filename = './model/extract_secondtype.sav'
 loaded_model = joblib.load(filename)
-result = loaded_model.score(vec.transform(x_test),y_test)
-print(result)
+
+feature_path = './model/feature.pkl'
+vec = CountVectorizer(decode_error="replace", vocabulary=pickle.load(open(feature_path, "rb")))
+
+L1 = Label(top, text="输入需要分析的商品标题：")
+L2 = Label(top)
+E1 = Entry(top)
+B = Button(top, text ="分析品类",command=lambda: put_category(E1.get()))
+
+L1.pack()
+E1.pack()
+B.pack()
+L2.pack()
+
+
+
+
+
+top.mainloop()
+
+#  加厚--家纺
+
+# print(put_category(loaded_model.predict(vec.transform(jieba.lcut(u'2019新款黑色职业短款半身裙')))))
+# print(put_category(loaded_model.predict(vec.transform(jieba.lcut(u'女神范套装女春装2019新款时尚休闲慵懒气质御姐洋气阔腿裤两件套')))))
+# print(put_category(loaded_model.predict(vec.transform(jieba.lcut(u'【睡眠文胸】无钢圈收副乳全罩杯加厚聚拢大码内衣调整型胸罩运动文胸DQM-4 h405')))))
+# print(put_category(loaded_model.predict(vec.transform(jieba.lcut(u'睡眠文胸')))))
+# print(put_category(loaded_model.predict(vec.transform(jieba.lcut(u'豪华高端超级无敌被罩四件套')))))
+# print(put_category(loaded_model.predict(vec.transform(jieba.lcut(u'全罩杯聚拢大码内衣调整型胸罩运动文胸')))))
+# print(put_category(loaded_model.predict(vec.transform(jieba.lcut(u'厚聚拢大码内衣胸罩')))))
+# print(put_category(loaded_model.predict(vec.transform(jieba.lcut(u'厚新款修身大码牛仔裤')))))
+
